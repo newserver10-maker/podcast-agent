@@ -4,15 +4,14 @@ import base64
 import os
 from pathlib import Path
 
-# 로컬 라이브러리 참조
-sys.path.insert(0, str(Path(__file__).parent))
+# 프로젝트 루트를 기준으로 경로 설정
+PROJECT_ROOT = Path(__file__).resolve().parent
 try:
+    sys.path.insert(0, str(PROJECT_ROOT))
     from lib.config import STATE_FILE, BROWSER_STATE_DIR
 except ImportError:
-    # 로컬 테스트를 위한 폴백 (skills 폴더가 있는 경우)
-    print("⚠️ lib.config를 찾을 수 없어 skills 디렉토리 경로를 시도합니다.", file=sys.stderr)
-    SKILL_DIR = Path("e:/Anti gravity/skills/notebooklm")
-    BROWSER_STATE_DIR = SKILL_DIR / "data" / "browser_state"
+    # lib.config를 찾지 못할 경우 수동 설정 (동일한 로직)
+    BROWSER_STATE_DIR = PROJECT_ROOT / "data" / "browser_state"
     STATE_FILE = BROWSER_STATE_DIR / "state.json"
 
 
@@ -39,29 +38,32 @@ def export_state_json() -> str:
 
 def restore_auth_from_env():
     """GitHub Secret(NOTEBOOKLM_AUTH_STATE)에서 인증 정보 복원"""
+    print(f"🔍 인증 복원 시도 중... (STATE_FILE: {STATE_FILE})")
+    
     b64_string = os.environ.get("NOTEBOOKLM_AUTH_STATE")
     if not b64_string:
-        print("⚠️ 환경 변수 'NOTEBOOKLM_AUTH_STATE'가 없습니다. 인증 복원을 건너뜁니다.")
-        return
+        print("❌ CRITICAL ERROR: GitHub Secret 'NOTEBOOKLM_AUTH_STATE'가 설정되어 있지 않습니다!")
+        print("   방법: GitHub Repo > Settings > Secrets and variables > Actions 에서 등록하세요.")
+        sys.exit(1) # 강제 종료하여 워크플로우를 실패로 만듦
 
     try:
         # base64 디코딩
         state_bytes = base64.b64decode(b64_string)
         state = json.loads(state_bytes)
         
-        # 디렉토리 생성 (GitHub Actions 환경 등)
+        # 디렉토리 생성
         STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         
         with open(STATE_FILE, "w", encoding="utf-8") as f:
             json.dump(state, f, indent=2)
             
         cookies = state.get("cookies", [])
-        print(f"✅ 인증 정보 복원 완료 (쿠키 {len(cookies)}개)")
-        print(f"   경로: {STATE_FILE}")
+        print(f"✅ 인증 정보 복원 성공! (쿠키 {len(cookies)}개)")
+        print(f"   저장 위치: {STATE_FILE.resolve()}")
         
     except Exception as e:
         print(f"❌ 인증 정보 복원 실패: {e}")
-        # 복원 실패는 치명적일 수 있으므로 stderr 출력 후 종료하지 않음 (상황에 따라 다름)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
