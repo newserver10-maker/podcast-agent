@@ -43,15 +43,21 @@ class BrowserFactory:
     @staticmethod
     def _inject_cookies(context: BrowserContext):
         """Inject cookies from state.json if available"""
+        # 경로 디버깅을 위해 절대 경로 출력
+        abs_state_path = STATE_FILE.resolve()
+        
         if STATE_FILE.exists():
             try:
                 with open(STATE_FILE, 'r') as f:
                     state = json.load(f)
                     if 'cookies' in state and len(state['cookies']) > 0:
                         context.add_cookies(state['cookies'])
-                        print(f"  🍪 쿠키 {len(state['cookies'])}개 주입 완료 (state.json)")
+                        print(f"  🍪 쿠키 {len(state['cookies'])}개 주입 완료")
+                        print(f"     (경로: {abs_state_path})")
             except Exception as e:
-                print(f"  ⚠️ Could not load state.json: {e}")
+                print(f"  ⚠️ 쿠키 주입 실패: {e}")
+        else:
+            print(f"  ℹ️ 쿠키 파일 없음 (건너뜀): {abs_state_path}")
 
 
 class StealthUtils:
