@@ -1,0 +1,36 @@
+name: Daily Podcast Agent
+
+on:
+  schedule:
+    - cron: "0 21 * * *" # UTC 21:00 = KST 06:00
+  workflow_dispatch:
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Install Patchright browsers
+          python -m patchright install chromium
+
+      - name: Restore Auth
+        env:
+          NOTEBOOKLM_AUTH_STATE: ${{ secrets.NOTEBOOKLM_AUTH_STATE }}
+        run: python export_auth.py restore
+
+      - name: Run Podcast Agent
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python main.py --now
