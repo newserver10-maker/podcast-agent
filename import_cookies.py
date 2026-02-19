@@ -22,6 +22,14 @@ def import_cookies_from_json(json_content: str):
             return
 
         # NotebookLM이 기대하는 state.json 구조 생성
+        # Playwright는 sameSite에 'unspecified'를 허용하지 않으므로 'None'으로 변환하거나 제거해야 합니다.
+        for cookie in cookies:
+            if cookie.get("sameSite") == "unspecified":
+                cookie["sameSite"] = "None"
+            # 번호(id) 필드가 있으면 제거 (Playwright add_cookies 스펙에 없음)
+            if "id" in cookie:
+                del cookie["id"]
+
         state = {
             "cookies": cookies,
             "origins": []

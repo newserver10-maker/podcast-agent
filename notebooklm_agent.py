@@ -202,6 +202,7 @@ class NotebookLMAgent:
             # 인증 확인
             if "accounts.google.com" in self.page.url:
                 print("  ❌ 인증 필요 — auth_manager.py setup을 먼저 실행하세요")
+                self._dump_debug("debug_auth_fail.html")
                 return False
 
             print("  ✅ NotebookLM 접속 성공")
