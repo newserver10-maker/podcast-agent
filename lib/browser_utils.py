@@ -28,7 +28,6 @@ class BrowserFactory:
         # Launch persistent context
         context = playwright.chromium.launch_persistent_context(
             user_data_dir=user_data_dir,
-            channel="chrome",  # Use real Chrome
             headless=headless,
             no_viewport=True,
             ignore_default_args=["--enable-automation"],
@@ -37,9 +36,8 @@ class BrowserFactory:
         )
 
         # Cookie Workaround for Playwright bug #36139
-        # Session cookies (expires=-1) don't persist in user_data_dir automatically
         BrowserFactory._inject_cookies(context)
-
+        
         return context
 
     @staticmethod
@@ -51,9 +49,9 @@ class BrowserFactory:
                     state = json.load(f)
                     if 'cookies' in state and len(state['cookies']) > 0:
                         context.add_cookies(state['cookies'])
-                        # print(f"  Injected {len(state['cookies'])} cookies from state.json")
+                        print(f"  🍪 쿠키 {len(state['cookies'])}개 주입 완료 (state.json)")
             except Exception as e:
-                print(f"  Could not load state.json: {e}")
+                print(f"  ⚠️ Could not load state.json: {e}")
 
 
 class StealthUtils:
