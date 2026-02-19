@@ -42,8 +42,7 @@ class BrowserFactory:
 
     @staticmethod
     def _inject_cookies(context: BrowserContext):
-        """Inject cookies from state.json if available"""
-        # 경로 디버깅을 위해 절대 경로 출력
+        """Inject cookies from state.json if available with sanitization"""
         abs_state_path = STATE_FILE.resolve()
         
         if STATE_FILE.exists():
@@ -51,8 +50,31 @@ class BrowserFactory:
                 with open(STATE_FILE, 'r') as f:
                     state = json.load(f)
                     if 'cookies' in state and len(state['cookies']) > 0:
-                        context.add_cookies(state['cookies'])
-                        print(f"  🍪 쿠키 {len(state['cookies'])}개 주입 완료")
+                        # Playwright 호환성을 위한 쿠키 정규화
+                        sanitized_cookies = []
+                        for cookie in state['cookies']:
+                            s_cookie = cookie.copy()
+                            
+                            # sameSite 값 정규화 (Playwright는 Strict, Lax, None만 허용)
+                            ss = s_cookie.get('sameSite', '').lower()
+                            if ss in ['no_restriction', 'unspecified', 'none', '']:
+                                s_cookie['sameSite'] = 'None'
+                            elif 'lax' in ss:
+                                s_cookie['sameSite'] = 'Lax'
+                            elif 'strict' in ss:
+                                s_cookie['sameSite'] = 'Strict'
+                            else:
+                                s_cookie['sameSite'] = 'Lax' # 기본값
+                            
+                            # 불필요하거나 충돌을 일으키는 필드 제거
+                            for field in ['id', 'storeId', 'hostOnly']:
+                                if field in s_cookie:
+                                    del s_cookie[field]
+                                    
+                            sanitized_cookies.append(s_cookie)
+                            
+                        context.add_cookies(sanitized_cookies)
+                        print(f"  🍪 쿠키 {len(sanitized_cookies)}개 정규화 및 주입 완료")
                         print(f"     (경로: {abs_state_path})")
             except Exception as e:
                 print(f"  ⚠️ 쿠키 주입 실패: {e}")
