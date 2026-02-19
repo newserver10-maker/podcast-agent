@@ -29,6 +29,18 @@ jobs:
           NOTEBOOKLM_AUTH_STATE: ${{ secrets.NOTEBOOKLM_AUTH_STATE }}
         run: python export_auth.py restore
 
+      - name: Verify Auth State
+        run: |
+          echo "Current Path: $(pwd)"
+          echo "Listing data directory:"
+          ls -R data || echo "Data directory not found"
+          if [ -f "data/browser_state/state.json" ]; then
+            echo "✅ state.json exists"
+          else
+            echo "❌ state.json IS MISSING!"
+            exit 1
+          fi
+
       - name: Run Podcast Agent
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
